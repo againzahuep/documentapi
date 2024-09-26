@@ -38,7 +38,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService{
 
 	// Obtener usuario por nombre de usuario
 	public User getUserByUsername(String username) {
-		return userDao.findByUsername(username);
+		return userDao.findByUsername(username).orElseThrow();
 	}
 
 	public List<User> getAllUsers() {
@@ -50,7 +50,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService{
 	}
 
 	public User getUserByName(String name) {
-		return userDao.findByUsername(name);
+		return userDao.findByUsername(name).orElseThrow();
 	}
 
 
@@ -72,7 +72,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService{
 	@Transactional(readOnly=true)
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 		
-		User user = userDao.findByUsername(username);
+		User user = userDao.findByUsername(username).orElseThrow();
 		
 		if(user == null) {
 			logger.error("Login failed, user " + username);
@@ -91,7 +91,7 @@ public class UserServiceImpl implements IUserService, UserDetailsService{
 	@Override
 	@Transactional(readOnly=true)
 	public User findByUsername(String username) {
-		return userDao.findByUsername(username);
+		return userDao.findByUsername(username).orElseThrow();
 	}
 
 	@Override

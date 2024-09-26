@@ -13,12 +13,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,6 +43,12 @@ public class DocumentServiceImpl implements IDocumentService {
     private static final String[] ALLOWED_EXTENSIONS = {".doc", ".docx", ".pdf", ".odt"};
 
     private final BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Document> findAll(Pageable pageable) {
+        return documentDao.findAll(pageable);
+    }
 
     public String upload(MultipartFile file, String password) throws IOException {
         // Validaciones
@@ -86,7 +92,7 @@ public class DocumentServiceImpl implements IDocumentService {
         // Registrar la acción del usuario (esto puede ser modificado según tu lógica)
 
 
-        User userDB = userDao.findByPassword(document.getUser().getPassword());
+        User userDB = userDao.findByPassword(document.getUser().getPassword()).orElseThrow();
         if(passwordEncoder.matches(password, userDB.getPassword())){
             userDB.setAction(Action.UPLOADED);
             userDB.setActionDate(LocalDateTime.now());
@@ -103,15 +109,17 @@ public class DocumentServiceImpl implements IDocumentService {
         return false;
     }
 
-    public List<Document> getAllDocuments() {
-        return documentDao.findAll();
+
+    @Override
+    public List<Document> findByUserIdAndTimestampBetween(Long userId, LocalDateTime start, LocalDateTime end) {
+        return null;
     }
 
     @Override
     public byte[] download(String name) throws IOException {
 
         // 1. Buscar el documento en la base de datos
-        Document document = documentDao.findByName(name);
+        Document document = documentDao.findByName(name).orElseThrow();
         if (document == null) {
             throw new RuntimeException("Documento no encontrado");
         }
@@ -171,6 +179,12 @@ public class DocumentServiceImpl implements IDocumentService {
     public List<Document> getDocumentsByBusinessId(Long businessId) {
         return documentDao.findByBusinessId(businessId);
     }
+
+    @Override
+    public List<Document> findAll() {
+        return documentDao.findAll();
+    }
+
     @Override
     public Path getPath(String name) {
         return Paths.get(DIRECTORY_UPLOAD).resolve(name).toAbsolutePath();
@@ -178,8 +192,7 @@ public class DocumentServiceImpl implements IDocumentService {
 
     @Override
     public Document findByName(String documentName) {
-        Document document = documentDao.findByName(documentName);
-        return document;
+        return documentDao.findByName(documentName).orElseThrow();
     }
 
 

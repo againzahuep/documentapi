@@ -15,6 +15,7 @@ public class Document implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Setter
     @Getter
     private Long id;
 

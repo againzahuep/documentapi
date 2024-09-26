@@ -5,8 +5,6 @@ import com.example.documentapi.dao.IDocumentDao;
 import com.example.documentapi.entity.Document;
 import com.example.documentapi.service.IDocumentService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
@@ -51,7 +49,7 @@ public class DocumentController {
         byte[] content = documentService.download(documentName);
 
         // 1. Buscar el documento en la base de datos
-        Document document = documentDao.findByName(documentName);
+        Document document = documentDao.findByName(documentName).orElseThrow();
         if (document == null) {
             throw new RuntimeException("Documento no encontrado");
         }
@@ -80,12 +78,18 @@ public class DocumentController {
         return ResponseEntity.ok().headers(headers).body(content);
     }
 
+    @GetMapping(value = "/list")
+    public ResponseEntity<List<Document>> getAllUsers() {
+        List<Document> documents = documentService.findAll();
+        return ResponseEntity.ok(documents);
+    }
+
     @DeleteMapping("/delete/{documentId}")
     public ResponseEntity<String> delete(@PathVariable String name) throws IOException {
         boolean d = documentService.delete(name);
         return ResponseEntity.ok("Document " + d + "deleted succesfully.");
     }
-
+    @GetMapping("/documents/{userId}/date-range")
     public ResponseEntity<Page<Document>> getDocuments(
             @RequestParam(required = false) LocalDateTime startDate,
             @RequestParam(required = false) LocalDateTime endDate,
