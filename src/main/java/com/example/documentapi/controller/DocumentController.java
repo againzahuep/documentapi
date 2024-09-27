@@ -1,37 +1,32 @@
 package com.example.documentapi.controller;
 
 
-import com.example.documentapi.dao.IDocumentDao;
 import com.example.documentapi.entity.Document;
 import com.example.documentapi.service.IDocumentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/documents")
-@CrossOrigin(origins = { "http://localhost:3000" })
+@CrossOrigin(origins = { "http://localhost:8080" })
 public class DocumentController {
 
     @Autowired
     private IDocumentService documentService;
 
-    @Autowired
-    private IDocumentDao documentDao;
 
     @PostMapping("/upload")
     public ResponseEntity<String> upload(@RequestParam MultipartFile file, String key) {
@@ -47,37 +42,33 @@ public class DocumentController {
 
 
     @GetMapping("/download/{documentId}")
-    public ResponseEntity<byte[]> download(@PathVariable String documentName) throws IOException {
-        byte[] content = documentService.download(documentName);
-
-        // 1. Buscar el documento en la base de datos
-        Document document = documentDao.findByName(documentName);
-        if (document == null) {
-            throw new RuntimeException("Documento no encontrado");
+    public ResponseEntity<Resource> download(@PathVariable String documentName, @PathVariable String password)  {
+        byte[] content = new byte[0];
+        try {
+            content = documentService.download(documentName, password);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
+        if (content != null) {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(new ByteArrayResource(content));
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
 
-        // Leer el contenido del archivo encriptado
-        Path filePath = Paths.get(document.getFilePath());
+    @GetMapping(value = "/list")
+    public ResponseEntity<List<Document>> getAllUsers() {
+        List<Document> documents = documentService.findAll();
+        return ResponseEntity.ok(documents);
+    }
 
-
-
-        Path rutaAnterior = Paths.get("uploads").resolve(document.getFilePath()).toAbsolutePath();
-
-
-        File archivoAnterior = filePath.toFile();
-
-        String filePathName = archivoAnterior.getPath();
-        filePathName =
-                filePathName.replace(filePathName.split("enc")[1], document.getFileExtension());
-
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filePathName + "\"");
-
-
-
-        return ResponseEntity.ok().headers(headers).body(content);
+    @GetMapping("/page/{page}")
+    public Page<Document> index(@PathVariable Integer page) {
+        Pageable pageable = PageRequest.of(page, 4);
+        return documentService.findAll(pageable);
     }
 
     @DeleteMapping("/delete/{documentId}")
@@ -85,7 +76,7 @@ public class DocumentController {
         boolean d = documentService.delete(name);
         return ResponseEntity.ok("Document " + d + "deleted succesfully.");
     }
-
+    @GetMapping("/documents/{userId}/date-range")
     public ResponseEntity<Page<Document>> getDocuments(
             @RequestParam(required = false) LocalDateTime startDate,
             @RequestParam(required = false) LocalDateTime endDate,
@@ -95,7 +86,7 @@ public class DocumentController {
 
         validateDates(startDate, endDate);
 
-        Page<Document> documents = documentService.getDocuments(startDate, endDate, userId, action, pageable);
+        Page<Document> documents = documentService.filterBy(startDate, endDate, userId, action, pageable);
         return ResponseEntity.ok(documents);
     }
 
@@ -106,16 +97,10 @@ public class DocumentController {
     }
 
     private void validateDates(LocalDateTime startDate, LocalDateTime endDate) {
-        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+        if (startDate != null && endDate != null && startDate.isBefore(endDate)) {
             throw new IllegalArgumentException("La fecha de inicio no puede ser después de la fecha de fin.");
         }
     }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
-    }
-
 
 
 }

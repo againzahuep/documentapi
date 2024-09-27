@@ -11,10 +11,12 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "documents")
+@javax.annotation.Generated(value = "io.swagger.codegen.languages.JavaClientCodegen", date = "2017-08-29T12:04:37.072+02:00")
 public class Document implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Setter
     @Getter
     private Long id;
 
@@ -27,10 +29,15 @@ public class Document implements Serializable {
     @Getter
     private String action; // uploaded, deleted, downloaded
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
     @Setter
     @Getter
+    private String passwordHash;
+
+
+    @Setter
+    @Getter
+    @ManyToOne
+    @JoinColumn(name = "user_id")
     private User user;
 
     @Setter
@@ -40,12 +47,6 @@ public class Document implements Serializable {
     @Setter
     @Getter
     private String filePath;
-
-    @Setter
-    @Getter
-    private String fileExtension;
-
-
 
     private static final long serialVersionUID = 1L;
 

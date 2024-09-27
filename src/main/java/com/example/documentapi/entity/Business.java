@@ -10,6 +10,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "business")
+@javax.annotation.Generated(value = "io.swagger.codegen.languages.JavaClientCodegen", date = "2017-08-29T12:04:37.072+02:00")
 public class Business {
 
     @Id

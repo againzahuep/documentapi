@@ -20,11 +20,11 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
 
 	@Override
 	public void configure(HttpSecurity http) throws Exception {
-		http.authorizeRequests().antMatchers(HttpMethod.GET, "/api/documents", "/api/users", "/uploads/**").permitAll()
-		.anyRequest().authenticated()
+		http.authorizeRequests().antMatchers(HttpMethod.GET, "/**","/api/documents", "/api/users", "/uploads/**").permitAll()
+		.anyRequest().permitAll()
 		.and().cors().configurationSource(corsConfigurationSource());
 	}
-	
+
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration config = new CorsConfiguration();
@@ -32,17 +32,14 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
 		config.addAllowedOriginPattern("*");
 		config.addAllowedHeader("*");
 		config.addAllowedMethod("*");
-		//config.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:4200"));
-		//config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-//		config.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization"));
-		
+
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", config);
 		return source;
 	}
 
 
-	
+
 	@Bean
 	public FilterRegistrationBean<CorsFilter> corsFilter(){
 		FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<CorsFilter>(new CorsFilter(corsConfigurationSource()));
@@ -50,5 +47,5 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
 		return bean;
 	}
 
-	
+
 }

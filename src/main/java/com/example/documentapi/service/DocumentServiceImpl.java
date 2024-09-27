@@ -1,10 +1,10 @@
 package com.example.documentapi.service;
 
-import com.example.documentapi.dao.IDocumentDao;
-import com.example.documentapi.dao.IUserDao;
-import com.example.documentapi.entity.Action;
+import com.example.documentapi.dao.IDocumentRepository;
+import com.example.documentapi.dao.IUserRepository;
 import com.example.documentapi.entity.Document;
 import com.example.documentapi.entity.User;
+import com.example.documentapi.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,15 +13,18 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.MalformedURLException;
+import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -33,66 +36,86 @@ public class DocumentServiceImpl implements IDocumentService {
     UserDetailsService userDetailsService;
 
     @Autowired
-    IUserDao userDao;
+    IUserRepository userRepository;
 
-    private final static String DIRECTORY_UPLOAD = "uploads";
+    private final static String UPLOADS_FOLDER = "uploads";
     @Autowired
-    private IDocumentDao documentDao;
+    private IDocumentRepository documentRepository;
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private static final String[] ALLOWED_EXTENSIONS = {".doc", ".docx", ".pdf", ".odt"};
 
-    private final BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+
+    @Override
+    public void init() {
+        // TODO Auto-generated method stub
+        try {
+            Files.createDirectory(Paths.get(UPLOADS_FOLDER));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Document> findAll(Pageable pageable) {
+        return documentRepository.findAll(pageable);
+    }
 
     public String upload(MultipartFile file, String password) throws IOException {
         // Validaciones
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty.");
-        }
-
-        // Validar la extensión del archivo
         String fileName = file.getOriginalFilename();
-        if (!isValidExtension(fileName)) {
-            throw new IllegalArgumentException("Type file not allowed.");
+
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = ((UserDetails) principal).getUsername();
+
+        User user = userRepository.findByUsername(username);
+
+        if (user != null) {
+            // Procesar el archivo
+
+            if (file.isEmpty()) {
+                throw new IllegalArgumentException("File is empty.");
+            }
+
+            // Validar la extensión del archivo
+
+            if (!isValidExtension(fileName)) {
+                throw new IllegalArgumentException("Type file not allowed.");
+            }
+
+            // Save the file
+            File directory = new File(UPLOADS_FOLDER);
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+
+            byte[] encryptedContent = new byte[0];
+            try {
+                encryptedContent = Utils.encryptFile(file.getBytes(), password);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+            // Save file to disk
+            String filePath = UPLOADS_FOLDER + "/" + file.getOriginalFilename();
+            Files.write(Paths.get(filePath), encryptedContent);
+
+            // Hash password
+            String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+
+            // Save document to database
+            Document document = new Document();
+            document.setName(fileName);
+            document.setFilePath(filePath);
+            document.setPasswordHash(hashedPassword);
+            document.setAction("Upload");
+            document.setCreatedAt(LocalDateTime.now());
+
+            document.setUser(user);
+            documentRepository.save(document);
         }
-
-        // Save the file
-        File directory = new File(DIRECTORY_UPLOAD);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
-
-        // Encrypt the file
-        byte[] fileBytes = file.getBytes();
-        String encryptedContent = bCryptPasswordEncoder.encode(new String(fileBytes));
-
-        // Save the encrypted file
-        String extension = getExtension(fileName);
-
-
-        Path filePath = Paths.get(DIRECTORY_UPLOAD + fileName + ".enc"); // Añadir .enc para indicar que está encriptado
-        try (FileOutputStream fos = new FileOutputStream(filePath.toFile())) {
-            fos.write(encryptedContent.getBytes());
-        }
-
-
-        // Save the info of document in database
-        Document document = new Document();
-        document.setName(fileName);
-        document.setFileExtension(extension);
-        document.setCreatedAt(LocalDateTime.now());
-        documentDao.save(document);
 
         // Registrar la acción del usuario (esto puede ser modificado según tu lógica)
-
-
-        User userDB = userDao.findByPassword(document.getUser().getPassword());
-        if(passwordEncoder.matches(password, userDB.getPassword())){
-            userDB.setAction(Action.UPLOADED);
-            userDB.setActionDate(LocalDateTime.now());
-            userDao.save(userDB);
-        }
-
 
         return fileName;
 
@@ -103,27 +126,60 @@ public class DocumentServiceImpl implements IDocumentService {
         return false;
     }
 
-    public List<Document> getAllDocuments() {
-        return documentDao.findAll();
+
+    @Override
+    public List<Document> findByUserIdAndTimestampBetween(Long userId, LocalDateTime start, LocalDateTime end) {
+        return null;
     }
 
     @Override
-    public byte[] download(String name) throws IOException {
+    public byte[] download(String documentId, String password) {
+        // Obtener el usuario autenticado
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = ((UserDetails) principal).getUsername();
 
-        // 1. Buscar el documento en la base de datos
-        Document document = documentDao.findByName(name);
-        if (document == null) {
-            throw new RuntimeException("Documento no encontrado");
+        User currentUser = userRepository.findByUsername(username);
+
+        if (currentUser != null) {
+            // Buscar el documento por ID
+            Document document = documentRepository.findByName(documentId);
+
+            if (document != null && document.getUser().getUsername().equals(currentUser.getUsername())) {
+                // Verificar si la contraseña proporcionada coincide con el hash almacenado
+                if (BCrypt.checkpw(password, document.getPasswordHash())) {
+                    // Leer y desencriptar el archivo del disco
+                    byte[] encryptedContent = new byte[0];
+                    try {
+                        encryptedContent = Files.readAllBytes(Paths.get(document.getFilePath()));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    try {
+                        return Utils.decryptFile(encryptedContent, password);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    try {
+                        throw new Exception("Invalid password.");
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            } else {
+                try {
+                    throw new Exception("Unauthorized or document not found.");
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        } else {
+            try {
+                throw new Exception("Unauthorized user.");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
-
-        // Leer el contenido del archivo encriptado
-        Path filePath = Paths.get(document.getFilePath());
-        try {
-            return Files.readAllBytes(filePath);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
     }
 
     private boolean isValidExtension(String fileName) {
@@ -133,21 +189,6 @@ public class DocumentServiceImpl implements IDocumentService {
             }
         }
         return false;
-    }
-
-    private String getExtension(String fileName) {
-        for (String extension : ALLOWED_EXTENSIONS) {
-            if (fileName.toLowerCase().substring(fileName.length() - 3, fileName.length()).equals("doc")) {
-                return ".doc";
-            } else if (fileName.toLowerCase().substring(fileName.length() - 4, fileName.length()).equals("docx")) {
-                return ".docx";
-            } else if (fileName.toLowerCase().substring(fileName.length() - 3, fileName.length()).equals("pdf")) {
-                return ".pdf";
-            } else if (fileName.toLowerCase().substring(fileName.length() - 3, fileName.length()).equals("odt")) {
-                return ".odt";
-            }
-        }
-        return "";
     }
 
     public boolean deleteDocument(String documentName) {
@@ -164,24 +205,19 @@ public class DocumentServiceImpl implements IDocumentService {
         return false;
     }
 
-    public Page<Document> getDocuments(LocalDateTime startDate, LocalDateTime endDate, Long userId, String action, Pageable pageable) {
-        return documentDao.findByFilters(startDate, endDate, userId, action, pageable);
+    public Page<Document> filterBy(LocalDateTime startDate, LocalDateTime endDate, Long userId, String action, Pageable pageable) {
+        return documentRepository.findByFilters(startDate, endDate, userId, action, pageable);
     }
 
     public List<Document> getDocumentsByBusinessId(Long businessId) {
-        return documentDao.findByBusinessId(businessId);
-    }
-    @Override
-    public Path getPath(String name) {
-        return Paths.get(DIRECTORY_UPLOAD).resolve(name).toAbsolutePath();
+        return documentRepository.findByBusinessId(businessId);
     }
 
     @Override
-    public Document findByName(String documentName) {
-        Document document = documentDao.findByName(documentName);
-        return document;
+    @Transactional(readOnly = true)
+    public List<Document> findAll() {
+        return documentRepository.findAll();
     }
-
 
 }
 
