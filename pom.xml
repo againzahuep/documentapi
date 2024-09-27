@@ -86,6 +86,12 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- OAuth2 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -97,6 +103,7 @@
         <dependency>
             <groupId>org.mariadb.jdbc</groupId>
             <artifactId>mariadb-java-client</artifactId>
+            <scope>runtime</scope>
             <version>2.6.0</version>
         </dependency>
 
@@ -134,7 +141,11 @@
             <version>2.4.0</version>
         </dependency>
 
-
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-ui</artifactId>
+            <version>1.6.14</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/org.springframework.security/spring-security-jwt -->
         <dependency>
             <groupId>org.springframework.security</groupId>
@@ -149,10 +160,19 @@
             <version>2.0.1.Final</version>
         </dependency>
 
+        <!-- Spring MockMvc for testing HTTP endpoints -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <version>1.18.20</version>
             <optional>true</optional>
+            <scope>provided</scope>
         </dependency>
 
         <!-- JDK 9+ -->
@@ -189,6 +209,7 @@
     </dependencies>
 
     <build>
+        <defaultGoal>install</defaultGoal>
         <pluginManagement>
         <plugins>
             <plugin>
@@ -203,7 +224,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <mainClass>com.example.Application</mainClass> <!-- Asegúrate de que esta ruta es correcta -->
+                    <mainClass>com.example.documentapi.Application</mainClass> <!-- Asegúrate de que esta ruta es correcta -->
                 </configuration>
             </plugin>
             <plugin>
@@ -220,6 +241,14 @@
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.2.0</version> <!-- or latest stable version -->
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>2.8.2</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
         </plugins>
         </pluginManagement>
         <resources>
@@ -232,7 +261,6 @@
         </resources>
     </build>
 
-
     <repositories>
 
         <repository>
@@ -244,114 +272,114 @@
             </snapshots>
         </repository>
 
-<!--        <repository>-->
-<!--            <id>spring-snapshot</id>-->
-<!--            <name>Spring Maven Snapshot Repository</name>-->
-<!--            <url>http://repo.springsource.org/libs-snapshot</url>-->
-<!--            <snapshots>-->
-<!--                <enabled>false</enabled>-->
-<!--            </snapshots>-->
-<!--        </repository>-->
-<!--        -->
-<!--        <repository>-->
-<!--            <id>spring-snapshots</id>-->
-<!--            <name>Spring Snapshots</name>-->
-<!--            <url>https://repo.spring.io/snapshot</url>-->
-<!--            <snapshots>-->
-<!--                <enabled>true</enabled>-->
-<!--            </snapshots>-->
-<!--        </repository>-->
+        <!--        <repository>-->
+        <!--            <id>spring-snapshot</id>-->
+        <!--            <name>Spring Maven Snapshot Repository</name>-->
+        <!--            <url>http://repo.springsource.org/libs-snapshot</url>-->
+        <!--            <snapshots>-->
+        <!--                <enabled>false</enabled>-->
+        <!--            </snapshots>-->
+        <!--        </repository>-->
+        <!--        -->
+        <!--        <repository>-->
+        <!--            <id>spring-snapshots</id>-->
+        <!--            <name>Spring Snapshots</name>-->
+        <!--            <url>https://repo.spring.io/snapshot</url>-->
+        <!--            <snapshots>-->
+        <!--                <enabled>true</enabled>-->
+        <!--            </snapshots>-->
+        <!--        </repository>-->
 
-<!--        <repository>-->
-<!--            <id>spring-milestones</id>-->
-<!--            <name>Spring Milestones</name>-->
-<!--            <url>https://repo.spring.io/milestone</url>-->
-<!--            <snapshots>-->
-<!--                <enabled>false</enabled>-->
-<!--            </snapshots>-->
-<!--        </repository>-->
+        <!--        <repository>-->
+        <!--            <id>spring-milestones</id>-->
+        <!--            <name>Spring Milestones</name>-->
+        <!--            <url>https://repo.spring.io/milestone</url>-->
+        <!--            <snapshots>-->
+        <!--                <enabled>false</enabled>-->
+        <!--            </snapshots>-->
+        <!--        </repository>-->
 
-<!--        &lt;!&ndash; Repositorio de Maven Central &ndash;&gt;-->
-<!--        <repository>-->
-<!--            <id>central</id>-->
-<!--            <url>https://repo.maven.apache.org/maven2</url>-->
-<!--            <snapshots>-->
-<!--                <enabled>false</enabled>-->
-<!--            </snapshots>-->
-<!--        </repository>-->
-
-
-
-<!--        <repository>-->
-<!--            <id>jboss-public-repository-group</id>-->
-<!--            <name>JBoss Public Maven Repository Group</name>-->
-<!--            <url>http://repository.jboss.org/nexus/content/groups/public/</url>-->
-<!--            <snapshots>-->
-<!--                <enabled>false</enabled>-->
-<!--            </snapshots>-->
-<!--        </repository>-->
+        <!--        &lt;!&ndash; Repositorio de Maven Central &ndash;&gt;-->
+        <!--        <repository>-->
+        <!--            <id>central</id>-->
+        <!--            <url>https://repo.maven.apache.org/maven2</url>-->
+        <!--            <snapshots>-->
+        <!--                <enabled>false</enabled>-->
+        <!--            </snapshots>-->
+        <!--        </repository>-->
 
 
-<!--        <repository>-->
-<!--            <id>oss-jfrog-artifactory</id>-->
-<!--            <name>oss-jfrog-artifactory-releases</name>-->
-<!--            <url>http://oss.jfrog.org/artifactory/oss-release-local</url>-->
-<!--        </repository>-->
 
-<!--        <repository>-->
-<!--            <id>jvnet-nexus-releases</id>-->
-<!--            <name>jvnet-nexus-releases</name>-->
-<!--            <url>https://maven.java.net/content/repositories/releases/</url>-->
-<!--        </repository>-->
+        <!--        <repository>-->
+        <!--            <id>jboss-public-repository-group</id>-->
+        <!--            <name>JBoss Public Maven Repository Group</name>-->
+        <!--            <url>http://repository.jboss.org/nexus/content/groups/public/</url>-->
+        <!--            <snapshots>-->
+        <!--                <enabled>false</enabled>-->
+        <!--            </snapshots>-->
+        <!--        </repository>-->
 
-<!--        <repository>-->
-<!--            <id>jcentral</id>-->
-<!--            <name>bintray</name>-->
-<!--            <url>http://jcenter.bintray.com</url>-->
-<!--            <snapshots>-->
-<!--                <enabled>false</enabled>-->
-<!--            </snapshots>-->
-<!--        </repository>-->
 
-<!--        <repository>-->
-<!--            <id>jcenter-snapshots</id>-->
-<!--            <name>jcenter</name>-->
-<!--            <url>http://oss.jfrog.org/artifactory/oss-snapshot-local/</url>-->
-<!--        </repository>-->
+        <!--        <repository>-->
+        <!--            <id>oss-jfrog-artifactory</id>-->
+        <!--            <name>oss-jfrog-artifactory-releases</name>-->
+        <!--            <url>http://oss.jfrog.org/artifactory/oss-release-local</url>-->
+        <!--        </repository>-->
+
+        <!--        <repository>-->
+        <!--            <id>jvnet-nexus-releases</id>-->
+        <!--            <name>jvnet-nexus-releases</name>-->
+        <!--            <url>https://maven.java.net/content/repositories/releases/</url>-->
+        <!--        </repository>-->
+
+        <!--        <repository>-->
+        <!--            <id>jcentral</id>-->
+        <!--            <name>bintray</name>-->
+        <!--            <url>http://jcenter.bintray.com</url>-->
+        <!--            <snapshots>-->
+        <!--                <enabled>false</enabled>-->
+        <!--            </snapshots>-->
+        <!--        </repository>-->
+
+        <!--        <repository>-->
+        <!--            <id>jcenter-snapshots</id>-->
+        <!--            <name>jcenter</name>-->
+        <!--            <url>http://oss.jfrog.org/artifactory/oss-snapshot-local/</url>-->
+        <!--        </repository>-->
 
     </repositories>
 
     <pluginRepositories>
-<!--        <pluginRepository>-->
-<!--            <id>spring-libs-release</id>-->
-<!--            <url>http://repo.spring.io/libs-release</url>-->
-<!--        </pluginRepository>-->
+        <!--        <pluginRepository>-->
+        <!--            <id>spring-libs-release</id>-->
+        <!--            <url>http://repo.spring.io/libs-release</url>-->
+        <!--        </pluginRepository>-->
 
-<!--        <pluginRepository>-->
-<!--            <id>io.spring.repo.maven.release</id>-->
-<!--            <url>http://repo.spring.io/release/</url>-->
-<!--        </pluginRepository>-->
-<!--        <pluginRepository>-->
-<!--            <id>io.spring.repo.maven.milestone</id>-->
-<!--            <url>http://repo.spring.io/milestone/</url>-->
-<!--        </pluginRepository>-->
-<!--        <pluginRepository>-->
-<!--            <id>io.spring.repo.maven.snapshot</id>-->
-<!--            <url>http://repo.spring.io/snapshot/</url>-->
-<!--        </pluginRepository>-->
-<!--        <pluginRepository>-->
-<!--            <id>jcenter-snapshots</id>-->
-<!--            <name>jcenter</name>-->
-<!--            <url>http://oss.jfrog.org/artifactory/oss-snapshot-local/</url>-->
-<!--        </pluginRepository>-->
-<!--        <pluginRepository>-->
-<!--            <id>jcenter-releases</id>-->
-<!--            <name>jcenter</name>-->
-<!--            <url>http://jcenter.bintray.com</url>-->
-<!--            <snapshots>-->
-<!--                <enabled>false</enabled>-->
-<!--            </snapshots>-->
-<!--        </pluginRepository>-->
+        <!--        <pluginRepository>-->
+        <!--            <id>io.spring.repo.maven.release</id>-->
+        <!--            <url>http://repo.spring.io/release/</url>-->
+        <!--        </pluginRepository>-->
+        <!--        <pluginRepository>-->
+        <!--            <id>io.spring.repo.maven.milestone</id>-->
+        <!--            <url>http://repo.spring.io/milestone/</url>-->
+        <!--        </pluginRepository>-->
+        <!--        <pluginRepository>-->
+        <!--            <id>io.spring.repo.maven.snapshot</id>-->
+        <!--            <url>http://repo.spring.io/snapshot/</url>-->
+        <!--        </pluginRepository>-->
+        <!--        <pluginRepository>-->
+        <!--            <id>jcenter-snapshots</id>-->
+        <!--            <name>jcenter</name>-->
+        <!--            <url>http://oss.jfrog.org/artifactory/oss-snapshot-local/</url>-->
+        <!--        </pluginRepository>-->
+        <!--        <pluginRepository>-->
+        <!--            <id>jcenter-releases</id>-->
+        <!--            <name>jcenter</name>-->
+        <!--            <url>http://jcenter.bintray.com</url>-->
+        <!--            <snapshots>-->
+        <!--                <enabled>false</enabled>-->
+        <!--            </snapshots>-->
+        <!--        </pluginRepository>-->
     </pluginRepositories>
 
 

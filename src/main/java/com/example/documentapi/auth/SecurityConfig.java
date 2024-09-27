@@ -7,13 +7,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 @EnableGlobalMethodSecurity(securedEnabled=true)
 @Configuration
@@ -32,6 +29,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
 		auth.userDetailsService(this.userDetailsService).passwordEncoder(passwordEncoder());
 	}
+
 
 	@Bean("authenticationManager")
 	@Override
@@ -53,7 +51,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 				.permitAll()
 				.anyRequest()
 				.authenticated()
-				.and()
+//				.and()
+//				.oauth2Login()
+//				.and()
 //				.exceptionHandling()
 //				.authenticationEntryPoint(
 //						new LoginUrlAuthenticationEntryPoint("/"))
@@ -61,7 +61,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 //				.logout()
 //				.logoutSuccessUrl("/")
 //				.permitAll()
-//				.and()
+				.and()
 				.csrf()
 				.disable()
 				.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)

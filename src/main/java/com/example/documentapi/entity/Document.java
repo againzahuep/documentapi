@@ -15,6 +15,7 @@ public class Document implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Setter
     @Getter
     private Long id;
 
@@ -26,6 +27,10 @@ public class Document implements Serializable {
     @Setter
     @Getter
     private String action; // uploaded, deleted, downloaded
+
+    @Setter
+    @Getter
+    private String passwordHash;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
@@ -40,12 +45,6 @@ public class Document implements Serializable {
     @Setter
     @Getter
     private String filePath;
-
-    @Setter
-    @Getter
-    private String fileExtension;
-
-
 
     private static final long serialVersionUID = 1L;
 

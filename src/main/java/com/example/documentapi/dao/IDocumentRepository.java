@@ -1,0 +1,34 @@
+package com.example.documentapi.dao;
+
+import com.example.documentapi.entity.Document;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+public interface IDocumentRepository extends JpaRepository<Document, Long> {
+    @Query("from documents")
+    public List<Document> findAll();
+
+    @Query("SELECT d FROM Document d WHERE (:startDate IS NULL OR d.timestamp >= :startDate) " +
+            "AND (:endDate IS NULL OR d.timestamp <= :endDate) " +
+            "AND (:userId IS NULL OR d.user.id = :userId) " +
+            "OR (:action IS NULL OR d.action = :action)")
+    Page<Document> findByFilters(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("userId") Long userId,
+            @Param("action") String action,
+            Pageable pageable);
+
+    @Query("SELECT d FROM Document d WHERE d.user.business.id = :businessId")
+    List<Document> findByBusinessId(@Param("businessId") Long businessId);
+
+
+    Optional<Document> findByUsername(String documentId);
+}
